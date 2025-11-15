@@ -312,21 +312,7 @@ end
         label = "Found a Missing Fishing Hole? \nStand in the Middle of it \n and type '/fmloc 1' in chat to Log it.",
     }
     settings:AddSetting(label)
-	--Dev stuff for adding pins
-	--if GetDisplayName() == "@Gamer_sa22" or "@gamer_sa22" or "@Nikkie-1" or "@Leons-Lion" then 
-    local edit = {
-        type = LHAS.ST_EDIT,
-        label = "Logged Fishing Holes",
-        tooltip = "You can edit the logged data here, incase you make a mistake.\nthen use button below to submit it.",
-        setFunction = function(value)
-            cordsDump = value
-			if cordsDump == "" then lastLoc = "" end
-        end,
-        getFunction = function()
-            return cordsDump
-        end,
-    }
-    settings:AddSetting(edit) 	
+
 	local button = {
             type = LHAS.ST_BUTTON,
             label = "Submit Logged",
@@ -479,3 +465,4 @@ local function OnLoad(eventCode,addonName)
 	
 end
 EVENT_MANAGER:RegisterForEvent(AddonName,EVENT_ADD_ON_LOADED,OnLoad)
+
