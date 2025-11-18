@@ -1,8 +1,8 @@
 ## Title: Fishing Map
 ## Description: Shows fishing holes on the map
 ## Author: Gamer_sa22
-## Version: 1.3.0
-## APIVersion: 101047 101048
+## Version: 1.5.1
+## APIVersion: 101048
 ## SavedVariables: FishingMapSavedVariables
 ## DependsOn: LibMapPins-1.0 LibHarvensAddonSettings 
 
