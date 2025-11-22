@@ -43,6 +43,7 @@ end
 --Data base
 local PinManager
 local cordsDump = ""
+local UpdatingMapPin=false
 local lastLoc = ""
 local devMode=false
 
@@ -183,6 +184,7 @@ end
 
 --Callbacks
 local function MapPinAddCallback()
+	if UpdatingMapPin==true or GetMapType()>MAPTYPE_ZONE or not PinManager:IsCustomPinEnabled(FishingPinData.id) then return end
 	local mapData=nil 
 	local notDone=true
 	local function MakePins()
@@ -195,6 +197,7 @@ local function MapPinAddCallback()
 			end
 		end
 	end
+	UpdatingMapPin=true
 	local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")
 	if subzone == "u48_overland_base" then 
 		subzone = "u48_overland_base_east" 
@@ -207,6 +210,7 @@ local function MapPinAddCallback()
 	mapData=FishingMapNodes[subzone]
 	notDone=GetFishingAchievement(subzone)
 	MakePins()
+	UpdatingMapPin=false
 end
 
 local function GetToolTipText()
@@ -437,3 +441,4 @@ local function OnLoad(eventCode,addonName)
 	
 end
 EVENT_MANAGER:RegisterForEvent(AddonName,EVENT_ADD_ON_LOADED,OnLoad)
+
