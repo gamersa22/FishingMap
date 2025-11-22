@@ -184,21 +184,25 @@ end
 
 --Callbacks
 local function MapPinAddCallback()
+	--make sure it once run once on the map 
 	if UpdatingMapPin==true or GetMapType()>MAPTYPE_ZONE or not PinManager:IsCustomPinEnabled(FishingPinData.id) then return end
 	local mapData=nil 
 	local notDone=true
 	local function MakePins()
 		if mapData and notDone then
 			for i1,pinData in pairs(mapData) do
-				if notDone[ pinData[3] ] then
+				if notDone[pinData[3]] then
+					--set the fish texture
 					FishingPinData.texture=FishIcon[pinData[3]][GetFMSettings().fishIconSelected[pinData[3]]]
-					PinManager:CreatePin(FishingPinData.id,{[1]=1,texture=FishingPinData.texture},pinData[1],pinData[2])
+					--make the pin, use the hole type(pinData[3]) in pinTag so it can be called for tooltip
+					PinManager:CreatePin(FishingPinData.id,{[1]=pinData[3]},pinData[1],pinData[2])
 				end
 			end
 		end
 	end
 	UpdatingMapPin=true
 	local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")
+	-- this has 2 parts so we split it
 	if subzone == "u48_overland_base" then 
 		subzone = "u48_overland_base_east" 
 		mapData=FishingMapNodes[subzone]
@@ -230,7 +234,7 @@ local PinTooltipCreator={
 	creator=function(pin)
 		local _, pinTag=pin:GetPinTypeAndTag()
 		local name,icon
-		icon=pinTag.texture
+		icon=FishIcon[pinTag[1]][GetFMSettings().fishIconSelected[pinTag[1]]]
 		name="X: "..pin.normalizedX.." Y: "..pin.normalizedY
 		if IsInGamepadPreferredMode() or IsConsoleUI() then
 			ZO_MapLocationTooltip_Gamepad:LayoutIconStringLine(ZO_MapLocationTooltip_Gamepad.tooltip, icon, zo_strformat("<<1>>", name), ZO_MapLocationTooltip_Gamepad.tooltip:GetStyle("mapLocationTooltipWayshrineHeader"))
@@ -258,7 +262,7 @@ local function SettingsMenu()
 		--default = false, 
         setFunction = function(value)
            GetFMSettings().AllFish = value
-		   LMP:RefreshPins(FishingPinData.name)
+		   PinManager:RefreshCustomPins(FishingPinData.id)
         end,
         getFunction = function()
             return GetFMSettings().AllFish
@@ -337,14 +341,14 @@ local function SetUpSlashCommands()
 		d("logged fishingSpots cleared")
 	end
 	--saves the cord it given by "/fmloc #" and "/fmwploc #"
-	local function logCords(n,fileName,cords)
+	local function logCords(n,subzone,cords)
 		if n == "?" then 
 			d("No Fishing hole detected")
 		end
-		if lastLoc ~= fileName then
+		if lastLoc ~= subzone then
 			if lastLoc ~= "" then cordsDump = cordsDump .. "},"end
-			cordsDump = cordsDump.. fileName .. "={"
-			lastLoc = fileName				
+			cordsDump = cordsDump.. subzone .. "={"
+			lastLoc = subzone				
 		end
 		cordsDump = cordsDump .. "{"..cords..","..n.."},"		
 		d("Logged")
@@ -363,35 +367,29 @@ local function SetUpSlashCommands()
 			interactableName = FishNameToId(interactableName:gsub(" Fishing Hole", ""))
 		end
 		local x,y=GetMapPlayerPosition("player")
-		local texture = GetMapTileTexture()
-	    local fileName = texture:match("[^\\/]+$"):lower()
-			fileName = fileName:gsub("%.dds$", "")
-			fileName = fileName:gsub("_[0-9]+$", "")		
+	    local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")		
 		local xStr = string.gsub(math.floor(x*1000)/1000, "^0%.", ".")
 		local yStr = string.gsub(math.floor(y*1000)/1000, "^0%.", ".")
 		local cords = xStr..","..yStr
-		if fileName == "u48_overland_base" then fileName = SolsticeCheck(xStr,yStr) end
-		d(fileName .. "={{"..cords..","..interactableName.."}},")
+		if subzone == "u48_overland_base" then subzone = SolsticeCheck(xStr,yStr) end
+		d(subzone .. "={{"..cords..","..interactableName.."}},")
 		n=tonumber(n)	
 		if n then
-			logCords(interactableName,fileName,cords)
+			logCords(interactableName,subzone,cords)
 		end
 	end
 		
 	SLASH_COMMANDS["/fmwploc"]=function(n)
-		local texturePath = GetMapTileTexture()
-		local fileName = texturePath:match("[^\\/]+$"):lower()
-			fileName = fileName:gsub("%.dds$", "")
-			fileName = fileName:gsub("_[0-9]+$", "")
+		local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")
 		local x, y = GetMapPlayerWaypoint()
 		local xStr = string.gsub(math.floor(x*1000)/1000, "^0%.", ".")
 		local yStr = string.gsub(math.floor(y*1000)/1000, "^0%.", ".")
 		local cords = xStr..","..yStr
-		if fileName == "u48_overland_base" then fileName = SolsticeCheck(xStr,yStr) end
-		d(fileName .. "={" .. cords .. "},")
+		if subzone == "u48_overland_base" then subzone = SolsticeCheck(xStr,yStr) end
+		d(subzone .. "={" .. cords .. "},")
 		n=tonumber(n)	
 		if n and n>=1 and n<=4 then
-			logCords(n,fileName,cords)
+			logCords(n,subzone,cords)
 		end
 	end
 	SLASH_COMMANDS["/fmdev"]=function(n)
@@ -441,4 +439,3 @@ local function OnLoad(eventCode,addonName)
 	
 end
 EVENT_MANAGER:RegisterForEvent(AddonName,EVENT_ADD_ON_LOADED,OnLoad)
-
