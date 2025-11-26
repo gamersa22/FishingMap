@@ -14,6 +14,15 @@ local Localization={
 	es={Lake = "Lago", Foul = "Sucia", River = "Río", Salt = "Salada", Oily = "Aceitosa", Mystic = "Mística", Running = "Corriente",},
 	zh={Lake="湖泊",Foul="脏水",River="河流",Salt="咸水",Oily="油污",Mystic="神秘",Running="Running",},
 	}
+local LocalizationFishingHole={	
+	en={Salt="Saltwater Fishing Hole",Lake="Lake Fishing Hole",River="River Fishing Hole",Foul="Foul Fishing Hole",NewLife="New Life Fishing Hole",Oily="Oily Fishing Hole",Mystic="Mystic Fishing Hole",AbysFoul="Foul Abyssal Fishing Hole",},
+	de={Salt="Fischgrund (Salzwasser)",Lake="Fischgrund (Seewasser)",River="Fischgrund (Flusswasser)",Foul="Fischgrund (Brackwasser)",NewLife="Neujahrsfest-Fischgrund",Oily="Fischgrund (Ölwasser)",Mystic="Fischgrund (Mythenwasser)",AbysFoul="Abgründiger Fischgrund (Brackwasser)",},
+	es={Salt="Lugar de pesca de agua salada",Lake="Lugar de pesca de lago",River="Lugar de pesca de río",Foul="Lugar de pesca de agua sucia",NewLife="Lugar de pesca de la Nueva Vida",Oily="Lugar de pesca aceitoso",Mystic="Lugar de pesca místico",AbysFoul="Lugar de pesca abisal de agua sucia",},
+	fr={Salt="Trou de pêche d'eau de mer",Lake="Trou de pêche lacustre",River="Trou de pêche de rivière",Foul="Trou de pêche sale",NewLife="Trou de pêche de la Nouvelle vie",Oily="Trou de pêche huileux",Mystic="Trou de pêche mystique",AbysFoul="Trou de pêche sale abyssal",},
+	jp={Salt="塩水の釣り穴",Lake="湖の釣り穴",River="川の釣り穴",Foul="汚水の釣り穴",NewLife="ニュー・ライフの釣り穴",Oily="油の釣り穴",Mystic="秘術の釣り穴",AbysFoul="深淵の汚水の釣り穴",},
+	ru={Salt="Место для рыбалки на море",Lake="Место для рыбалки на озере",River="Место для рыбалки на реке",Foul="Место для рыбалки в сточной воде",NewLife="Место для рыбалки на Празднике Новой жизни",Oily="Место для рыбалки (маслянистая вода)",Mystic="Место для рыбалки (мистическая вода)",AbysFoul="Место для рыбалки в сточной воде (бездонное море)",},
+	zh={Salt="咸水钓鱼点",Lake="湖泊钓鱼点",River="河流钓鱼点",Foul="脏水钓鱼点",NewLife="新生钓鱼点",Oily="油污钓鱼点",Mystic="神秘商人钓鱼点",AbysFoul="污秽深渊钓鱼点",},
+}
 local lang=GetCVar("language.2") if not Localization[lang] then lang="en" end
 local function Loc(string)
 	return Localization[lang][string] or Localization[lang]["en"] or string
@@ -24,7 +33,7 @@ local DefaultVars =
 {	
 	["AllFish"] = false,
 	["FishingMap_Nodes"]=true,
-	["fishIconSelected"]={[1]=1,[2]=1,[3]=1,[4]=1},
+	["fishIconSelected"]={[1]=1,[2]=1,[3]=1,[4]=1,[5]=1,},
 	["pinsize"] = 20,
 	["useCharacterSettings"] = false,
 }
@@ -65,6 +74,9 @@ local FishIcon={
 		[1]="/esoui/art/icons/crafting_fishing_merringar.dds",	
 		[2]="/esoui/art/icons/crafting_fishing_longfin.dds",		
 		},
+	[5]={--NewLife
+		[1]="/esoui/art/icons/achievements_indexicon_fishing_up.dds",	
+		},
 	}
 local FishTypeToID = {
 	Foul=1,
@@ -74,11 +86,13 @@ local FishTypeToID = {
 	Oily=1,--clockwork_base
 	Mystic=4,--artaeum_base
 	Running=2,--? no idea
+	AbysFoul=1,
+	NewLife=5,
 }
 local function FishNameToId(name)
 	-- gets globalName
 	local failed = true
-	for globalName,locName in pairs(Localization[lang]) do 
+	for globalName,locName in pairs(LocalizationFishingHole[lang]) do 
 		if locName == name then
 			name = globalName
 			failed = false
@@ -221,7 +235,8 @@ local function GetToolTipText()
 return zo_iconFormat(FishIcon[1][GetFMSettings().fishIconSelected[1]],35,35).." "..Loc("Foul").."\n"
 	 ..zo_iconFormat(FishIcon[2][GetFMSettings().fishIconSelected[2]],35,35).." "..Loc("River").."\n"
 	 ..zo_iconFormat(FishIcon[3][GetFMSettings().fishIconSelected[3]],35,35).." "..Loc("Lake").."\n"
-	 ..zo_iconFormat(FishIcon[4][GetFMSettings().fishIconSelected[4]],35,35).." "..Loc("Salt")
+	 ..zo_iconFormat(FishIcon[4][GetFMSettings().fishIconSelected[4]],35,35).." "..Loc("Salt").."\n"
+	 ..zo_iconFormat(FishIcon[5][GetFMSettings().fishIconSelected[5]],35,35).." "..Loc("NewLife")
 end
 local function updatePinSize(n)
 	GetFMSettings().pinsize=n
@@ -288,10 +303,10 @@ local function SettingsMenu()
 	for i = 1, #FishIcon do
 		local items = FishIcon[i]
 		local label = ""
-		if i==1 then label="Foul" end 
-		if i==2 then label="River" end 
-		if i==3 then label="Lake" end
-		if i==4 then label="Salt" end
+		if i==1 then label=Loc("Foul") end 
+		if i==2 then label=Loc("River") end 
+		if i==3 then label=Loc("Lake") end
+		if i==4 then label=Loc("Salt") end
 		local IconSelect = {
 			type = LHAS.ST_ICONPICKER,
 			label = label,
@@ -338,6 +353,7 @@ local function SetUpSlashCommands()
 	
 	SLASH_COMMANDS["/fmclear"]=function()
 		cordsDump = ""
+		lastLoc = ""
 		d("logged fishingSpots cleared")
 	end
 	--saves the cord it given by "/fmloc #" and "/fmwploc #"
@@ -361,10 +377,10 @@ local function SetUpSlashCommands()
 	end
 	SLASH_COMMANDS["/fmloc"]=function(n)
 		local action, interactableName = GetGameCameraInteractableActionInfo()
-		if interactableName =="" or action ~= "Fish" then 
+		if interactableName =="" then 
 			interactableName = "?" 
 		else
-			interactableName = FishNameToId(interactableName:gsub(" Fishing Hole", ""))
+			interactableName = FishNameToId(interactableName)
 		end
 		local x,y=GetMapPlayerPosition("player")
 	    local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")		
