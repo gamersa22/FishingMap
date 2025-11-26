@@ -32,6 +32,7 @@ local SavedVars, SavedGlobal
 local DefaultVars = 
 {	
 	["AllFish"] = false,
+    ["ForceShowFish"]={[1]=0,[2]=0,[3]=0,[4]=0,},
 	["FishingMap_Nodes"]=true,
 	["fishIconSelected"]={[1]=1,[2]=1,[3]=1,[4]=1,[5]=1,},
 	["pinsize"] = 20,
@@ -89,6 +90,13 @@ local FishTypeToID = {
 	AbysFoul=1,
 	NewLife=5,
 }
+local NumToFish={
+    [1]="Foul",
+	[2]="River",
+	[3]="Lake",
+	[4]="Salt",
+}
+
 local function FishNameToId(name)
 	-- gets globalName
 	local failed = true
@@ -177,7 +185,13 @@ local function GetFishingAchievement(subzone)
 	if GetFMSettings().AllFish then return {[1]=true,[2]=true,[3]=true,[4]=true} end
 	local id=FishingZones[subzone] or FishingZones[GetCurrentMapZoneIndex()] or FishingZones[ZoneIndexToParentIndex[GetCurrentMapZoneIndex()]]
 	if id then
-		local total={Lake=0,Foul=0,River=0,Salt=0,Oily=0,Mystic=0,Running=0}
+		local total={
+
+Foul=GetFMSettings().ForceShowFish[1],
+River=GetFMSettings().ForceShowFish[2],
+Lake=GetFMSettings().ForceShowFish[3],
+Salt=GetFMSettings().ForceShowFish[4],
+Oily=0,Mystic=0,Running=0}
 		for i=1,GetAchievementNumCriteria(id) do
 			local AchName,a,b=GetAchievementCriterion(id,i)
 			if FishingBugFix[id] and FishingBugFix[id][i] then
@@ -270,20 +284,7 @@ local function SettingsMenu()
         label = "Go To \n Map -> Options -> Filters \n To Turn On & Off",
     }
     settings:AddSetting(label)
-	local checkbox = {--Fishing
-        type = LHAS.ST_CHECKBOX,
-        label = "Show All Fish", 
-		tooltip = "When Off will only show fish you need to collect.",
-		--default = false, 
-        setFunction = function(value)
-           GetFMSettings().AllFish = value
-		   PinManager:RefreshCustomPins(FishingPinData.id)
-        end,
-        getFunction = function()
-            return GetFMSettings().AllFish
-        end,
-    }
-	settings:AddSetting(checkbox)
+	
 	--Slider to Adjust Pin Size
     local slider = {
         type = LHAS.ST_SLIDER,
@@ -302,11 +303,7 @@ local function SettingsMenu()
     settings:AddSetting(slider)
 	for i = 1, #FishIcon do
 		local items = FishIcon[i]
-		local label = ""
-		if i==1 then label=Loc("Foul") end 
-		if i==2 then label=Loc("River") end 
-		if i==3 then label=Loc("Lake") end
-		if i==4 then label=Loc("Salt") end
+		local label = Loc(NumToFish[i])
 		local IconSelect = {
 			type = LHAS.ST_ICONPICKER,
 			label = label,
@@ -321,6 +318,43 @@ local function SettingsMenu()
 		}
 		settings:AddSetting(IconSelect)
 	end
+
+	local checkbox = {--Fishing
+        type = LHAS.ST_CHECKBOX,
+        label = "Show All Fish", 
+		tooltip = "When Off will only show fish you need to collect.",
+		default = false, 
+        setFunction = function(value)
+           GetFMSettings().AllFish = value
+		   PinManager:RefreshCustomPins(FishingPinData.id)
+        end,
+        getFunction = function()
+            return GetFMSettings().AllFish
+        end,
+    }
+	settings:AddSetting(checkbox)
+	
+for i = 1, #NumToFish do
+		local function boolToNumber(bool)
+             if bool then return 1 else return 0 end
+		end
+		local checkbox = {--Fishing
+        type = LHAS.ST_CHECKBOX,
+        label = "Force Show "..Loc(NumToFish[i]), 
+		tooltip = "Turn on when you want to see the fish on the map even if you have it done",
+	    default = false, 
+        setFunction = function(value)	
+           GetFMSettings().ForceShowFish[i] = boolToNumber(value)
+		   PinManager:RefreshCustomPins(FishingPinData.id)
+        end,
+        getFunction = function()
+            return GetFMSettings().ForceShowFish[i]==1
+        end,
+    }
+	settings:AddSetting(checkbox)
+end
+
+	
 	local label = {
         type = LHAS.ST_LABEL,
         label = "Found a Missing Fishing Hole? \nStand in the Middle of it \n and type '/fmloc 1' in chat to Log it.",
@@ -338,7 +372,6 @@ local function SettingsMenu()
         }
 	settings:AddSetting(button)
 	
-	--end
 end
 
 local function SetUpSlashCommands()
@@ -455,3 +488,4 @@ local function OnLoad(eventCode,addonName)
 	
 end
 EVENT_MANAGER:RegisterForEvent(AddonName,EVENT_ADD_ON_LOADED,OnLoad)
+
