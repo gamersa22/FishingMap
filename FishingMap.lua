@@ -1,6 +1,7 @@
 local LMP = LibMapPins
 local GPTF = LibGamepadTooltipFilters
 local AddonName="FishingMap"
+local VisualName="Fishing Map"
 local Localization={
 	en={Lake="Lake",Foul="Foul",River="River",Salt="Salt",Oily="Oily",Mystic="Mystic",Running="Running",},
 	ru={Lake="озерная вода",Foul="сточная вода",River="речная вода",Salt="морская вода",Oily="маслянистая вода",Mystic="мистическая вода",Running="речная вода",},
@@ -16,9 +17,9 @@ local Localization={
 	}
 local LocalizationFishingHole={	
 	en={Salt="Saltwater Fishing Hole",Lake="Lake Fishing Hole",River="River Fishing Hole",Foul="Foul Fishing Hole",NewLife="New Life Fishing Hole",Oily="Oily Fishing Hole",Mystic="Mystic Fishing Hole",AbysFoul="Foul Abyssal Fishing Hole",},
-	de={Salt="Fischgrund (Salzwasser)",Lake="Fischgrund (Seewasser)",River="Fischgrund (Flusswasser)",Foul="Fischgrund (Brackwasser)",NewLife="Neujahrsfest-Fischgrund",Oily="Fischgrund (Ölwasser)",Mystic="Fischgrund (Mythenwasser)",AbysFoul="Abgründiger Fischgrund (Brackwasser)",},
-	es={Salt="Lugar de pesca de agua salada",Lake="Lugar de pesca de lago",River="Lugar de pesca de río",Foul="Lugar de pesca de agua sucia",NewLife="Lugar de pesca de la Nueva Vida",Oily="Lugar de pesca aceitoso",Mystic="Lugar de pesca místico",AbysFoul="Lugar de pesca abisal de agua sucia",},
-	fr={Salt="Trou de pêche d'eau de mer",Lake="Trou de pêche lacustre",River="Trou de pêche de rivière",Foul="Trou de pêche sale",NewLife="Trou de pêche de la Nouvelle vie",Oily="Trou de pêche huileux",Mystic="Trou de pêche mystique",AbysFoul="Trou de pêche sale abyssal",},
+	de={Salt="Fischgrund (Salzwasser)^m",Lake="Fischgrund (Seewasser)^m",River="Fischgrund (Flusswasser)^m",Foul="Fischgrund (Brackwasser)^m",NewLife="Neujahrsfest-Fischgrund^m",Oily="Fischgrund (Ölwasser)^m",Mystic="Fischgrund (Mythenwasser)^m",AbysFoul="abgründiger Fischgrund (Brackwasser)^m",},
+	es={Salt="lugar de pesca de agua salada^m",Lake="lugar de pesca de lago^m",River="lugar de pesca de río^m",Foul="lugar de pesca de agua sucia^m",NewLife="lugar de pesca de la Nueva Vida^m",Oily="lugar de pesca aceitoso^m",Mystic="lugar de pesca místico^m",AbysFoul="lugar de pesca abisal de agua sucia^m",},
+	fr={Salt="trou de pêche d'eau de mer^m",Lake="trou de pêche lacustre^m",River="trou de pêche de rivière^m",Foul="trou de pêche sale^m",NewLife="trou de pêche de la Nouvelle vie^m",Oily="trou de pêche huileux^m",Mystic="trou de pêche mystique^m",AbysFoul="trou de pêche sale abyssal",},
 	jp={Salt="塩水の釣り穴",Lake="湖の釣り穴",River="川の釣り穴",Foul="汚水の釣り穴",NewLife="ニュー・ライフの釣り穴",Oily="油の釣り穴",Mystic="秘術の釣り穴",AbysFoul="深淵の汚水の釣り穴",},
 	ru={Salt="Место для рыбалки на море",Lake="Место для рыбалки на озере",River="Место для рыбалки на реке",Foul="Место для рыбалки в сточной воде",NewLife="Место для рыбалки на Празднике Новой жизни",Oily="Место для рыбалки (маслянистая вода)",Mystic="Место для рыбалки (мистическая вода)",AbysFoul="Место для рыбалки в сточной воде (бездонное море)",},
 	zh={Salt="咸水钓鱼点",Lake="湖泊钓鱼点",River="河流钓鱼点",Foul="脏水钓鱼点",NewLife="新生钓鱼点",Oily="油污钓鱼点",Mystic="神秘商人钓鱼点",AbysFoul="污秽深渊钓鱼点",},
@@ -59,24 +60,24 @@ local devMode=false
 
 local FishIcon={
 	[1]={--Foul
-		[1]="/esoui/art/icons/crafting_slaughterfish.dds",
-		[2]="/esoui/art/icons/crafting_fishing_caliginousbristleworm.dds",
-		[3]="/esoui/art/icons/crafting_fishing_illuminatedhalosaur.dds",
+		"/esoui/art/icons/crafting_slaughterfish.dds",
+		"/esoui/art/icons/crafting_fishing_caliginousbristleworm.dds",
+		"/esoui/art/icons/crafting_fishing_illuminatedhalosaur.dds",
 		},
 	[2]={--River
-		[1]="/esoui/art/icons/crafting_fishing_river_betty.dds",	
-		[2]="/esoui/art/icons/crafting_fishing_salmon.dds",
+		"/esoui/art/icons/crafting_fishing_river_betty.dds",	
+		"/esoui/art/icons/crafting_fishing_salmon.dds",
 		},
 	[3]={--Lake
-		[1]="/esoui/art/icons/crafting_fishing_perch.dds",
-		[2]="/esoui/art/icons/crafting_fishing_shad.dds",
+		"/esoui/art/icons/crafting_fishing_perch.dds",
+		"/esoui/art/icons/crafting_fishing_shad.dds",
 		},
 	[4]={--Salt
-		[1]="/esoui/art/icons/crafting_fishing_merringar.dds",	
-		[2]="/esoui/art/icons/crafting_fishing_longfin.dds",		
+		"/esoui/art/icons/crafting_fishing_merringar.dds",	
+		"/esoui/art/icons/crafting_fishing_longfin.dds",		
 		},
 	[5]={--NewLife
-		[1]="/esoui/art/icons/achievements_indexicon_fishing_up.dds",	
+		"/esoui/art/icons/achievements_indexicon_fishing_up.dds",	
 		},
 	}
 local FishTypeToID = {
@@ -101,7 +102,7 @@ local function FishNameToId(name)
 	-- gets globalName
 	local failed = true
 	for globalName,locName in pairs(LocalizationFishingHole[lang]) do 
-		if locName == name then
+		if zo_strformat(SI_INTERACT_PROMPT_FORMAT_INTERACTABLE_NAME, locName) == name then
 			name = globalName
 			failed = false
 			break
@@ -186,12 +187,11 @@ local function GetFishingAchievement(subzone)
 	local id=FishingZones[subzone] or FishingZones[GetCurrentMapZoneIndex()] or FishingZones[ZoneIndexToParentIndex[GetCurrentMapZoneIndex()]]
 	if id then
 		local total={
-
-Foul=GetFMSettings().ForceShowFish[1],
-River=GetFMSettings().ForceShowFish[2],
-Lake=GetFMSettings().ForceShowFish[3],
-Salt=GetFMSettings().ForceShowFish[4],
-Oily=0,Mystic=0,Running=0}
+			Foul=GetFMSettings().ForceShowFish[1],
+			River=GetFMSettings().ForceShowFish[2],
+			Lake=GetFMSettings().ForceShowFish[3],
+			Salt=GetFMSettings().ForceShowFish[4],
+			Oily=0,Mystic=0,Running=0}
 		for i=1,GetAchievementNumCriteria(id) do
 			local AchName,a,b=GetAchievementCriterion(id,i)
 			if FishingBugFix[id] and FishingBugFix[id][i] then
@@ -275,21 +275,27 @@ local PinTooltipCreator={
 
 local function SettingsMenu()
 	local LHAS = LibHarvensAddonSettings
-   
-    local settings = LHAS:AddAddon("Fishing Map")
+   local options = {
+        allowDefaults = false, 
+        allowRefresh = true, 
+       -- defaultsFunction = function() 
+        --    d("Fishing Map settign have been reset to Default")
+       -- end,
+    }
+    local settings = LHAS:AddAddon(VisualName,options)
     if not settings then return end
 	
-	local label = {
+	settings:AddSetting({
         type = LHAS.ST_LABEL,
         label = "Go To \n Map -> Options -> Filters \n To Turn On & Off",
-    }
-    settings:AddSetting(label)
-	
+    })
+
 	--Slider to Adjust Pin Size
-    local slider = {
+    settings:AddSetting({
         type = LHAS.ST_SLIDER,
         label = "Pin Size \n Small <- -> Large",
 		tooltip = "Default is 20",
+		default = 20, 
         setFunction = function(value)
            updatePinSize(value)
         end,
@@ -299,15 +305,13 @@ local function SettingsMenu()
         min = 16,
         max = 40,
         step = 1
-    }
-    settings:AddSetting(slider)
-	for i = 1, #FishIcon do
-		local items = FishIcon[i]
-		local label = Loc(NumToFish[i])
-		local IconSelect = {
+    })	
+
+	for i = 1, 4 do	
+		settings:AddSetting({
 			type = LHAS.ST_ICONPICKER,
-			label = label,
-			items = items,
+			label = Loc(NumToFish[i]),
+			items = FishIcon[i],		
 			getFunction = function()
 				return GetFMSettings().fishIconSelected[i]
 			end,
@@ -315,11 +319,11 @@ local function SettingsMenu()
 				GetFMSettings().fishIconSelected[i]=index
 				PinManager:RefreshCustomPins(FishingPinData.id)
 			end,
-		}
-		settings:AddSetting(IconSelect)
+			default = 1,--disabled as its broken in LHAS right now
+		})
 	end
 
-	local checkbox = {--Fishing
+	settings:AddSetting({
         type = LHAS.ST_CHECKBOX,
         label = "Show All Fish", 
 		tooltip = "When Off will only show fish you need to collect.",
@@ -331,47 +335,53 @@ local function SettingsMenu()
         getFunction = function()
             return GetFMSettings().AllFish
         end,
-    }
-	settings:AddSetting(checkbox)
+    })
 	
-for i = 1, #NumToFish do
+	for i = 1, 4 do
 		local function boolToNumber(bool)
-             if bool then return 1 else return 0 end
+			 if bool then return 1 else return 0 end
 		end
-		local checkbox = {--Fishing
-        type = LHAS.ST_CHECKBOX,
-        label = "Force Show "..Loc(NumToFish[i]), 
-		tooltip = "Turn on when you want to see the fish on the map even if you have it done",
-	    default = false, 
-        setFunction = function(value)	
-           GetFMSettings().ForceShowFish[i] = boolToNumber(value)
-		   PinManager:RefreshCustomPins(FishingPinData.id)
-        end,
-        getFunction = function()
-            return GetFMSettings().ForceShowFish[i]==1
-        end,
-    }
-	settings:AddSetting(checkbox)
-end
+		settings:AddSetting({
+			type = LHAS.ST_CHECKBOX,
+			label = "Force Show "..Loc(NumToFish[i]), 
+			tooltip = "Turn on when you want to see the fish on the map even if you have it done",
+			default = false, 
+			setFunction = function(value)	
+			   GetFMSettings().ForceShowFish[i] = boolToNumber(value)
+			   PinManager:RefreshCustomPins(FishingPinData.id)
+			end,
+			getFunction = function()
+				return GetFMSettings().ForceShowFish[i]==1
+			end,
+			disable = function() return GetFMSettings().AllFish end,
+		})
+	end
 
 	
-	local label = {
+	settings:AddSetting({
         type = LHAS.ST_LABEL,
         label = "Found a Missing Fishing Hole? \nStand in the Middle of it \n and type '/fmloc 1' in chat to Log it.",
-    }
-    settings:AddSetting(label)
+    })
 
-	local button = {
+	settings:AddSetting({
             type = LHAS.ST_BUTTON,
             label = "Submit Logged",
             tooltip = "Open link then click submit \n Type '/fmclear' in chat to clear logged holes",
             buttonText = "Open URL",
             clickHandler = function(control, button)
-                RequestOpenUnsafeURL(--[["https://forms.gle/GDKynx11DLHnzKkL8")--]]"https://docs.google.com/forms/d/e/1FAIpQLSczE1-xzjbFgRrXSMdMBxZuQgM2eGnBUpiOFvqB8Hve-MfEfA/viewform?usp=pp_url&entry.550722213=" ..cordsDump)
+                RequestOpenUnsafeURL("https://docs.google.com/forms/d/e/1FAIpQLSczE1-xzjbFgRrXSMdMBxZuQgM2eGnBUpiOFvqB8Hve-MfEfA/viewform?usp=pp_url&entry.550722213=" ..cordsDump)
             end,
-        }
-	settings:AddSetting(button)
+        })
 	
+	settings:AddSetting({
+        type = LHAS.ST_BUTTON,
+        label = "Submit Feedback / Request",
+		tooltip = "link to a form where you can leave feedback or even leave a request",
+		buttonText = "Open URL",
+		clickHandler = function(control, button)
+			RequestOpenUnsafeURL("https://docs.google.com/forms/d/e/1FAIpQLScYWtcIJmjn0ZUrjsvpB5rwA5AlsLvasHUIcKqzIYcogo9vjQ/viewform?usp=pp_url&entry.550722213="..VisualName)
+		end,
+	})
 end
 
 local function SetUpSlashCommands()
@@ -488,4 +498,3 @@ local function OnLoad(eventCode,addonName)
 	
 end
 EVENT_MANAGER:RegisterForEvent(AddonName,EVENT_ADD_ON_LOADED,OnLoad)
-
