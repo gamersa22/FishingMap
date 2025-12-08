@@ -133,6 +133,7 @@ local FishingZones={
 	[501]=916,--Carglorn
 	[109]=493,--Bleakrock
 	[305]=491,--Stros M'Kai
+	[306]=491,--Betnikh
 	[307]=492,--Khenarthi's Roost
 	--DLC
 	[347]=1186,--Imperial City
@@ -264,7 +265,7 @@ local PinTooltipCreator={
 		local _, pinTag=pin:GetPinTypeAndTag()
 		local name,icon
 		icon=FishIcon[pinTag[1]][GetFMSettings().fishIconSelected[pinTag[1]]]
-		name="X: "..pin.normalizedX.." Y: "..pin.normalizedY
+		name="X: "..pin.normalizedX.." Y: "..pin.normalizedY.." ID: "..pinTag[1]
 		if IsInGamepadPreferredMode() or IsConsoleUI() then
 			ZO_MapLocationTooltip_Gamepad:LayoutIconStringLine(ZO_MapLocationTooltip_Gamepad.tooltip, icon, zo_strformat("<<1>>", name), ZO_MapLocationTooltip_Gamepad.tooltip:GetStyle("mapLocationTooltipWayshrineHeader"))
 		else
