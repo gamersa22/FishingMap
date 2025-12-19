@@ -77,7 +77,7 @@ local FishIcon={
 		"/esoui/art/icons/crafting_fishing_longfin.dds",		
 		},
 	[5]={--NewLife
-		"/esoui/art/icons/achievements_indexicon_fishing_up.dds",	
+		"/esoui/art/icons/achievement_newlifefestival_005.dds",	
 		},
 	}
 local FishTypeToID = {
@@ -184,7 +184,7 @@ local FishingAchievements={[471]=true,[472]=true,[473]=true,[474]=true,[475]=tru
 local FishingBugFix={[473]={[3]="River"},[2027]={[8]="Oily"},[472]={[1]="Foul"}}--unsure if needed
 local FishingPinData={name="FishingMap_Nodes",done=false,pin={},maxDistance=0.05,level=101,texture="/esoui/art/icons/achievements_indexicon_fishing_up.dds",k=1.25,}
 local function GetFishingAchievement(subzone)
-	if GetFMSettings().AllFish then return {[1]=true,[2]=true,[3]=true,[4]=true} end
+	if GetFMSettings().AllFish then return {[1]=true,[2]=true,[3]=true,[4]=true,[5]=true} end
 	local id=FishingZones[subzone] or FishingZones[GetCurrentMapZoneIndex()] or FishingZones[ZoneIndexToParentIndex[GetCurrentMapZoneIndex()]]
 	if id then
 		local total={
@@ -206,7 +206,7 @@ local function GetFishingAchievement(subzone)
 			end
 		end
 		total.Salt=total.Salt+total.Mystic total.Foul=total.Foul+total.Oily total.River=total.River+total.Running		
-		return {[1]=total.Foul>0,[2]=total.River>0,[3]=total.Lake>0,[4]=total.Salt>0}
+		return {[1]=total.Foul>0,[2]=total.River>0,[3]=total.Lake>0,[4]=total.Salt>0,[5]=true}
 	end
 	return false
 end
@@ -370,7 +370,7 @@ local function SettingsMenu()
             tooltip = "Open link then click submit \n Type '/fmclear' in chat to clear logged holes",
             buttonText = "Open URL",
             clickHandler = function(control, button)
-                RequestOpenUnsafeURL("https://docs.google.com/forms/d/e/1FAIpQLSczE1-xzjbFgRrXSMdMBxZuQgM2eGnBUpiOFvqB8Hve-MfEfA/viewform?usp=pp_url&entry.550722213=" ..cordsDump)
+                RequestOpenUnsafeURL("https://docs.google.com/forms/d/e/1FAIpQLSczE1-xzjbFgRrXSMdMBxZuQgM2eGnBUpiOFvqB8Hve-MfEfA/viewform?usp=pp_url&entry.550722213=" ..cordsDump.."},")
             end,
         })
 	
