@@ -38,6 +38,7 @@ local DefaultVars =
 	["fishIconSelected"]={[1]=1,[2]=1,[3]=1,[4]=1,[5]=1,},
 	["pinsize"] = 20,
 	["useCharacterSettings"] = false,
+	["newlife"] = true,
 }
 local DefaultGlobal = {
 	["accountWideProfile"] = DefaultVars,
@@ -206,7 +207,7 @@ local function GetFishingAchievement(subzone)
 			end
 		end
 		total.Salt=total.Salt+total.Mystic total.Foul=total.Foul+total.Oily total.River=total.River+total.Running		
-		return {[1]=total.Foul>0,[2]=total.River>0,[3]=total.Lake>0,[4]=total.Salt>0,[5]=true}
+		return {[1]=total.Foul>0,[2]=total.River>0,[3]=total.Lake>0,[4]=total.Salt>0,[5]=GetFMSettings().newlife}
 	end
 	return false
 end
@@ -295,8 +296,8 @@ local function SettingsMenu()
     settings:AddSetting({
         type = LHAS.ST_SLIDER,
         label = "Pin Size \n Small <- -> Large",
-		tooltip = "Default is 20",
-		default = 20, 
+		tooltip = "Default: "..DefaultVars.pinsize,
+		default = DefaultVars.pinsize, 
         setFunction = function(value)
            updatePinSize(value)
         end,
@@ -320,7 +321,7 @@ local function SettingsMenu()
 				GetFMSettings().fishIconSelected[i]=index
 				PinManager:RefreshCustomPins(FishingPinData.id)
 			end,
-			default = 1,--disabled as its broken in LHAS right now
+			default = DefaultVars.fishIconSelected[i],
 		})
 	end
 
@@ -328,7 +329,7 @@ local function SettingsMenu()
         type = LHAS.ST_CHECKBOX,
         label = "Show All Fish", 
 		tooltip = "When Off will only show fish you need to collect.",
-		default = false, 
+		default = DefaultVars.AllFish, 
         setFunction = function(value)
            GetFMSettings().AllFish = value
 		   PinManager:RefreshCustomPins(FishingPinData.id)
@@ -383,6 +384,18 @@ local function SettingsMenu()
 			RequestOpenUnsafeURL("https://docs.google.com/forms/d/e/1FAIpQLScYWtcIJmjn0ZUrjsvpB5rwA5AlsLvasHUIcKqzIYcogo9vjQ/viewform?usp=pp_url&entry.550722213="..VisualName)
 		end,
 	})
+	settings:AddSetting({
+			type = LHAS.ST_CHECKBOX,
+			label = "Show "..LocalizationFishingHole[lang].NewLife, 
+			default = DefaultVars.newlife, 
+			setFunction = function(value)	
+			   GetFMSettings().newlife = value
+			   PinManager:RefreshCustomPins(FishingPinData.id)
+			end,
+			getFunction = function()
+				return GetFMSettings().newlife
+			end,
+		})
 end
 
 local function SetUpSlashCommands()
@@ -451,6 +464,11 @@ local function SetUpSlashCommands()
 		if n and n>=1 and n<=4 then
 			logCords(n,subzone,cords)
 		end
+	end
+	SLASH_COMMANDS["/fmnewlife"]=function(n)
+		GetFMSettings().newlife = not GetFMSettings().newlife
+		 PinManager:RefreshCustomPins(FishingPinData.id)
+		
 	end
 	SLASH_COMMANDS["/fmdev"]=function(n)
 		if devMode==false then
