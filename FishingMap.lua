@@ -38,7 +38,7 @@ local DefaultVars =
 	["fishIconSelected"]={[1]=1,[2]=1,[3]=1,[4]=1,[5]=1,},
 	["pinsize"] = 20,
 	["useCharacterSettings"] = false,
-	["newlife"] = true,
+	["newlife"] = false,
 }
 local DefaultGlobal = {
 	["accountWideProfile"] = DefaultVars,
@@ -109,7 +109,7 @@ local function FishNameToId(name)
 			break
 		end
 	end	
-	if failed then name = "Salt" end
+	if failed then return "?" end
 	return FishTypeToID[name]
 end
 
@@ -417,6 +417,7 @@ local function SetUpSlashCommands()
 	local function logCords(n,subzone,cords)
 		if n == "?" then 
 			d("No Fishing hole detected")
+			return
 		end
 		if lastLoc ~= subzone then
 			if lastLoc ~= "" then cordsDump = cordsDump .. "},"end
@@ -432,19 +433,19 @@ local function SetUpSlashCommands()
 		local dire = (x-pointA.x)*(pointB.y-pointA.y)-(y-pointA.y)*(pointB.x-pointA.x)
 		if dire<0 then return "u48_overland_base_west" else return "u48_overland_base_east" end
 	end
-	SLASH_COMMANDS["/fmloc"]=function(n)
-		local action, interactableName = GetGameCameraInteractableActionInfo()
-		if interactableName =="" then 
-			interactableName = "?" 
-		else
-			interactableName = FishNameToId(interactableName)
-		end
-		local x,y=GetMapPlayerPosition("player")
-	    local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")		
+	local function getFishingHoleInfo(x,y)
+		local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")		
 		local xStr = string.gsub(math.floor(x*1000)/1000, "^0%.", ".")
 		local yStr = string.gsub(math.floor(y*1000)/1000, "^0%.", ".")
 		local cords = xStr..","..yStr
 		if subzone == "u48_overland_base" then subzone = SolsticeCheck(xStr,yStr) end
+	return subzone, cords
+	end
+	SLASH_COMMANDS["/fmloc"]=function(n)
+		local action, interactableName = GetGameCameraInteractableActionInfo()
+		interactableName = FishNameToId(interactableName)
+		local x,y=GetMapPlayerPosition("player")
+	    local subzone, cords = getFishingHoleInfo(x,y)
 		d(subzone .. "={{"..cords..","..interactableName.."}},")
 		n=tonumber(n)	
 		if n then
@@ -453,13 +454,9 @@ local function SetUpSlashCommands()
 	end
 		
 	SLASH_COMMANDS["/fmwploc"]=function(n)
-		local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")
 		local x, y = GetMapPlayerWaypoint()
-		local xStr = string.gsub(math.floor(x*1000)/1000, "^0%.", ".")
-		local yStr = string.gsub(math.floor(y*1000)/1000, "^0%.", ".")
-		local cords = xStr..","..yStr
-		if subzone == "u48_overland_base" then subzone = SolsticeCheck(xStr,yStr) end
-		d(subzone .. "={" .. cords .. "},")
+		local subzone, cords = getFishingHoleInfo(x,y)
+		d(subzone .. "={{" .. cords .. "},}")
 		n=tonumber(n)	
 		if n and n>=1 and n<=4 then
 			logCords(n,subzone,cords)
