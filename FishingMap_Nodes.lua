@@ -166,7 +166,7 @@ FishingMapNodes = {
     ["crosswych_base"] = crosswych_base,
     ["crowswood_base"] = crowswood_base,
     ["daggerfall_base"] = daggerfall_base,
-    ["davonswatch_base"] = devonswatch_base,
+    ["davonswatch_base"] = davonswatch_base,
     ["deshaan_base"] = deshaan_base,
     ["dune_base"] = dune_base,
     ["eastmarch_base"] = eastmarch_base,
@@ -261,4 +261,5 @@ FishingMapNodes = {
     ["windhelm_base"] = windhelm_base,
     ["woodhearth_base"] = woodhearth_base,
     ["wrothgar_base"] = wrothgar_base,
+
 }
