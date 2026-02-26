@@ -220,19 +220,31 @@ local function AbortPinLoading()
     EVENT_MANAGER:UnregisterForUpdate(AddonName .. "_PinLoader")
     currentLoadingCoroutine = nil
 end
-
+local function customCreatePin(pinType, pinTag, xLoc, yLoc)
+    local pin, pinKey = PinManager:AcquireObject()
+    pin:SetData(pinType, pinTag)
+    pin:SetOriginalPosition(xLoc, yLoc)
+    pin:SetLocation(xLoc, yLoc)
+        
+    local customPinData = PinManager.customPins[pinType]
+    if customPinData then
+        PinManager:MapPinLookupToPinKey(customPinData.pinTypeString, pinType, pinTag, pinKey)
+    end
+end
 --Callbacks
 local function MapPinAddCallback()
     if GetMapType() > MAPTYPE_ZONE or not PinManager:IsCustomPinEnabled(FishingPinData.id) then return end
     local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")
     -- check if were adding pins, if same map exit, othewise stop loading old pins so we can add new
     if currentLoadingCoroutine ~= nil then
-        if currentLoadingMap == subzone then return end 
+        if currentLoadingMap == subzone then return end
         AbortPinLoading()
     end
     currentLoadingMap = subzone
-	local workQueue = {}	
-    local subzonesToProcess = {}	
+
+	local workQueue = {}
+    local subzonesToProcess = {}
+
 	--Add the map we want target 
     if subzone == "u48_overland_base" then
         table.insert(subzonesToProcess, "u48_overland_base_east")
@@ -240,40 +252,44 @@ local function MapPinAddCallback()
     else
         table.insert(subzonesToProcess, subzone)
     end
+
 	-- Load data up into workQueue for Coroutine
     for _, name in ipairs(subzonesToProcess) do
         local ImapData = FishingMapNodes[name]
-        local IachStatus = GetFishingAchievement(name) 
+        local IachStatus = GetFishingAchievement(name)
         if ImapData and IachStatus then
-            table.insert(workQueue, { mapData = ImapData, achStatus = IachStatus })
+			-- EDIT: let's create flat queue
+            -- table.insert(workQueue, {ImapData, IachStatus})
+			for i = 1, #ImapData do
+				local pinData = ImapData[i]
+				if IachStatus[pinData[3]] then  -- EDIT: moved check out of coroutine, now workQueue contains only pins we have to add
+					workQueue[#workQueue+1] = pinData
+				end
+			end
         end
     end
-	local currentJobIndex = 1
-	local currentPinIndex = 1
-	local frameBudget = 0.002 
-	
-    currentLoadingCoroutine = function()      
+	local j = 1
+	-- local currentPinIndex = 1  -- EDIT: because queue is flat now, `currentJobIndex` represents one pin which will be added
+	local frameBudget = 0.002
+
+    currentLoadingCoroutine = function()
         local startTime = GetGameTimeSeconds()
-        for j= currentJobIndex, #workQueue do
-			local job = workQueue[j]
-			local mapData = job.mapData
-			local achStatus = job.achStatus			
-            for i = currentPinIndex, #mapData do
-				local pinData = mapData[i]
-                if achStatus[pinData[3]] then
-                    FishingPinData.texture = FishIcon[pinData[3]][GetFMSettings().fishIconSelected[pinData[3]]]
-                    PinManager:CreatePin(FishingPinData.id, {[1]=pinData[3]}, pinData[1], pinData[2])
-                end
-                if i % 10 == 0 then	
-                    if (GetGameTimeSeconds() - startTime) > frameBudget then 
-						currentJobIndex = j
-						currentPinIndex = i + 1
-						return 
-					end
-                end
-            end		
-			currentPinIndex = 1
-        end
+
+        while j <= #workQueue do
+			local pinData = workQueue[j]
+
+			FishingPinData.texture = FishIcon[pinData[3]][GetFMSettings().fishIconSelected[pinData[3]]]
+			customCreatePin(FishingPinData.id, {[1]=pinData[3]}, pinData[1], pinData[2])
+
+			j = j + 1
+
+			if j % 10 == 0 then
+				if (GetGameTimeSeconds() - startTime) > frameBudget then
+					return
+				end
+			end
+		end
+
         AbortPinLoading()
     end
 
@@ -559,5 +575,6 @@ local function OnLoad(eventCode,addonName)
 	if GPTF then GPTF:AddTooltip(FishingPinData.id,GetToolTipText()) end	
 	SetUpSlashCommands()
 	
+	-- ZO_WorldMapPins.UpdateSymbolicPins = function() end
 end
 EVENT_MANAGER:RegisterForEvent(AddonName,EVENT_ADD_ON_LOADED,OnLoad)
