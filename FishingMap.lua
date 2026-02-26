@@ -212,39 +212,79 @@ local function GetFishingAchievement(subzone)
 	return false
 end
 
+local currentLoadingCoroutine = nil
+local currentLoadingMap = ""
+
+-- Helper to stop any existing loading process
+local function AbortPinLoading()
+    EVENT_MANAGER:UnregisterForUpdate(AddonName .. "_PinLoader")
+    currentLoadingCoroutine = nil
+end
+
 --Callbacks
 local function MapPinAddCallback()
-	--make sure it once run once on the map 
-	if UpdatingMapPin==true or GetMapType()>MAPTYPE_ZONE or not PinManager:IsCustomPinEnabled(FishingPinData.id) then return end
-	local mapData=nil 
-	local notDone=true
-	local function MakePins()
-		if mapData and notDone then
-			for i1,pinData in pairs(mapData) do
-				if notDone[pinData[3]] then
-					--set the fish texture
-					FishingPinData.texture=FishIcon[pinData[3]][GetFMSettings().fishIconSelected[pinData[3]]]
-					--make the pin, use the hole type(pinData[3]) in pinTag so it can be called for tooltip
-					PinManager:CreatePin(FishingPinData.id,{[1]=pinData[3]},pinData[1],pinData[2])
-				end
-			end
-		end
-	end
-	UpdatingMapPin=true
-	local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")
-	-- this has 2 parts so we split it
-	if subzone == "u48_overland_base" then 
-		subzone = "u48_overland_base_east" 
-		mapData=FishingMapNodes[subzone]
-		notDone=GetFishingAchievement(subzone)
-		MakePins()
-		subzone = "u48_overland_base_west" 
-	end
+    if GetMapType() > MAPTYPE_ZONE or not PinManager:IsCustomPinEnabled(FishingPinData.id) then return end
+    local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")
+    -- check if were adding pins, if same map exit, othewise stop loading old pins so we can add new
+    if currentLoadingCoroutine ~= nil then
+        if currentLoadingMap == subzone then return end 
+        AbortPinLoading()
+    end
+    currentLoadingMap = subzone
+	local workQueue = {}	
+    local subzonesToProcess = {}	
+	--Add the map we want target 
+    if subzone == "u48_overland_base" then
+        table.insert(subzonesToProcess, "u48_overland_base_east")
+        table.insert(subzonesToProcess, "u48_overland_base_west")
+    else
+        table.insert(subzonesToProcess, subzone)
+    end
+	-- Load data up into workQueue for Coroutine
+    for _, name in ipairs(subzonesToProcess) do
+        local ImapData = FishingMapNodes[name]
+        local IachStatus = GetFishingAchievement(name) 
+        if ImapData and IachStatus then
+            table.insert(workQueue, { mapData = ImapData, achStatus = IachStatus })
+        end
+    end
+	local currentJobIndex = 1
+	local currentPinIndex = 1
+	local frameBudget = 0.002 
 	
-	mapData=FishingMapNodes[subzone]
-	notDone=GetFishingAchievement(subzone)
-	MakePins()
-	UpdatingMapPin=false
+    currentLoadingCoroutine = function()      
+        local startTime = GetGameTimeSeconds()
+        for j= currentJobIndex, #workQueue do
+			local job = workQueue[j]
+			local mapData = job.mapData
+			local achStatus = job.achStatus			
+            for i = currentPinIndex, #mapData do
+				local pinData = mapData[i]
+                if achStatus[pinData[3]] then
+                    FishingPinData.texture = FishIcon[pinData[3]][GetFMSettings().fishIconSelected[pinData[3]]]
+                    PinManager:CreatePin(FishingPinData.id, {[1]=pinData[3]}, pinData[1], pinData[2])
+                end
+                if i % 10 == 0 then	
+                    if (GetGameTimeSeconds() - startTime) > frameBudget then 
+						currentJobIndex = j
+						currentPinIndex = i + 1
+						return 
+					end
+                end
+            end		
+			currentPinIndex = 1
+        end
+        AbortPinLoading()
+    end
+
+    -- Start Coroutine
+    EVENT_MANAGER:RegisterForUpdate(AddonName .. "_PinLoader", 0, function()
+        if currentLoadingCoroutine then
+            currentLoadingCoroutine()
+        else
+            AbortPinLoading()
+        end
+    end)
 end
 
 local function GetToolTipText()
@@ -277,6 +317,7 @@ local PinTooltipCreator={
 
 local function SettingsMenu()
 	local LHAS = LibHarvensAddonSettings
+	if LHAS == nil then return end
    local options = {
         allowDefaults = false, 
         allowRefresh = true, 
@@ -466,6 +507,12 @@ local function SetUpSlashCommands()
 		GetFMSettings().newlife = not GetFMSettings().newlife
 		 PinManager:RefreshCustomPins(FishingPinData.id)
 		
+	end
+	SLASH_COMMANDS["/fmsubmit"]=function()
+		RequestOpenUnsafeURL("https://docs.google.com/forms/d/e/1FAIpQLSczE1-xzjbFgRrXSMdMBxZuQgM2eGnBUpiOFvqB8Hve-MfEfA/viewform?usp=pp_url&entry.550722213=" ..cordsDump.."},")
+	end
+	SLASH_COMMANDS["/fmreport"]=function()
+		RequestOpenUnsafeURL("https://docs.google.com/forms/d/e/1FAIpQLScYWtcIJmjn0ZUrjsvpB5rwA5AlsLvasHUIcKqzIYcogo9vjQ/viewform?usp=pp_url&entry.550722213="..VisualName)
 	end
 	SLASH_COMMANDS["/fmdev"]=function(n)
 		if devMode==false then
