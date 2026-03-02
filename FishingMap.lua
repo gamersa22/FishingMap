@@ -258,8 +258,6 @@ local function MapPinAddCallback()
         local ImapData = FishingMapNodes[name]
         local IachStatus = GetFishingAchievement(name)
         if ImapData and IachStatus then
-			-- EDIT: let's create flat queue
-            -- table.insert(workQueue, {ImapData, IachStatus})
 			for i = 1, #ImapData do
 				local pinData = ImapData[i]
 				if IachStatus[pinData[3]] then  -- EDIT: moved check out of coroutine, now workQueue contains only pins we have to add
@@ -268,28 +266,24 @@ local function MapPinAddCallback()
 			end
         end
     end
-	local j = 1
-	-- local currentPinIndex = 1  -- EDIT: because queue is flat now, `currentJobIndex` represents one pin which will be added
+	local pinProcessIndex = 1
 	local frameBudget = 0.002
 
     currentLoadingCoroutine = function()
         local startTime = GetGameTimeSeconds()
-
-        while j <= #workQueue do
-			local pinData = workQueue[j]
-
+        while pinProcessIndex <= #workQueue do
+			local pinData = workQueue[pinProcessIndex]
+			
 			FishingPinData.texture = FishIcon[pinData[3]][GetFMSettings().fishIconSelected[pinData[3]]]
 			customCreatePin(FishingPinData.id, {[1]=pinData[3]}, pinData[1], pinData[2])
 
-			j = j + 1
-
-			if j % 10 == 0 then
+			pinProcessIndex = pinProcessIndex + 1
+			if pinProcessIndex % 10 == 0 then
 				if (GetGameTimeSeconds() - startTime) > frameBudget then
 					return
 				end
 			end
 		end
-
         AbortPinLoading()
     end
 
@@ -575,6 +569,6 @@ local function OnLoad(eventCode,addonName)
 	if GPTF then GPTF:AddTooltip(FishingPinData.id,GetToolTipText()) end	
 	SetUpSlashCommands()
 	
-	-- ZO_WorldMapPins.UpdateSymbolicPins = function() end
 end
 EVENT_MANAGER:RegisterForEvent(AddonName,EVENT_ADD_ON_LOADED,OnLoad)
+
