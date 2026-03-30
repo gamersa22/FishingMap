@@ -220,6 +220,7 @@ local function AbortPinLoading()
     EVENT_MANAGER:UnregisterForUpdate(AddonName .. "_PinLoader")
     currentLoadingCoroutine = nil
 end
+-- Cheap to Run Create Pin that does only what I need
 local function customCreatePin(pinType, pinTag, xLoc, yLoc)
     local pin, pinKey = PinManager:AcquireObject()
     pin:SetData(pinType, pinTag)
@@ -253,32 +254,32 @@ local function MapPinAddCallback()
         table.insert(subzonesToProcess, subzone)
     end
 
-	-- Load data up into workQueue for Coroutine
+	-- Process's Subzones
+	-- Get data from FishingMap_Nodes and checks if we need to show the data
+	-- Add data(pins) to workQueue so we have 1 big table to process
     for _, name in ipairs(subzonesToProcess) do
-        local ImapData = FishingMapNodes[name]
-        local IachStatus = GetFishingAchievement(name)
-        if ImapData and IachStatus then
-			for i = 1, #ImapData do
-				local pinData = ImapData[i]
-				if IachStatus[pinData[3]] then  -- EDIT: moved check out of coroutine, now workQueue contains only pins we have to add
+        local mapData = FishingMapNodes[name]
+        local achStatus = GetFishingAchievement(name)
+        if mapData and achStatus then
+			for i = 1, #mapData do
+				local pinData = mapData[i]
+				if achStatus[pinData[3]] then
 					workQueue[#workQueue+1] = pinData
 				end
 			end
         end
     end
-	local pinProcessIndex = 1
-	local frameBudget = 0.002
+	local pinIndex = 1
+	local frameBudget = 0.005
 
     currentLoadingCoroutine = function()
         local startTime = GetGameTimeSeconds()
-        while pinProcessIndex <= #workQueue do
-			local pinData = workQueue[pinProcessIndex]
-			
+        while pinIndex <= #workQueue do
+			local pinData = workQueue[pinIndex]
 			FishingPinData.texture = FishIcon[pinData[3]][GetFMSettings().fishIconSelected[pinData[3]]]
 			customCreatePin(FishingPinData.id, {[1]=pinData[3]}, pinData[1], pinData[2])
-
-			pinProcessIndex = pinProcessIndex + 1
-			if pinProcessIndex % 10 == 0 then
+			pinIndex = pinIndex + 1
+			if pinIndex % 10 == 0 then
 				if (GetGameTimeSeconds() - startTime) > frameBudget then
 					return
 				end
@@ -332,7 +333,7 @@ local function SettingsMenu()
         allowDefaults = false, 
         allowRefresh = true, 
        -- defaultsFunction = function() 
-        --    d("Fishing Map settign have been reset to Default")
+        --    CHAT_ROUTER:AddSystemMessage("Fishing Map settign have been reset to Default")
        -- end,
     }
     local settings = LHAS:AddAddon(VisualName,options)
@@ -455,19 +456,19 @@ local function SetUpSlashCommands()
 		if n and n>=16 and n<=40 then
 			updatePinSize(n)
 		else
-			d("/fmpinsize {Number} \n Number = 16 to 40")
+			CHAT_ROUTER:AddSystemMessage("/fmpinsize {Number} \n Number = 16 to 40")
 		end
 	end
 	
 	SLASH_COMMANDS["/fmclear"]=function()
 		cordsDump = ""
 		lastLoc = ""
-		d("logged fishingSpots cleared")
+		CHAT_ROUTER:AddSystemMessage("logged fishingSpots cleared")
 	end
 	--saves the cord it given by "/fmloc #" and "/fmwploc #"
 	local function logCords(n,subzone,cords)
 		if n == "?" then 
-			d("No Fishing hole detected")
+			CHAT_ROUTER:AddSystemMessage("No Fishing hole detected")
 			return
 		end
 		if lastLoc ~= subzone then
@@ -476,7 +477,7 @@ local function SetUpSlashCommands()
 			lastLoc = subzone				
 		end
 		cordsDump = cordsDump .. "{"..cords..","..n.."},"		
-		d("Logged")
+		CHAT_ROUTER:AddSystemMessage("Logged")
 	end
 	local function SolsticeCheck(x,y)
 		local pointA = {["x"]=.466,["y"]=.270}
@@ -497,7 +498,7 @@ local function SetUpSlashCommands()
 		interactableName = FishNameToId(interactableName)
 		local x,y=GetMapPlayerPosition("player")
 	    local subzone, cords = getFishingHoleInfo(x,y)
-		d(subzone .. "={{"..cords..","..interactableName.."}},")
+		CHAT_ROUTER:AddSystemMessage(subzone .. "={{"..cords..","..interactableName.."}},")
 		n=tonumber(n)	
 		if n then
 			logCords(interactableName,subzone,cords)
@@ -507,7 +508,8 @@ local function SetUpSlashCommands()
 	SLASH_COMMANDS["/fmwploc"]=function(n)
 		local x, y = GetMapPlayerWaypoint()
 		local subzone, cords = getFishingHoleInfo(x,y)
-		d(subzone .. "={{" .. cords .. "},}")
+		if not n then n="" end
+		CHAT_ROUTER:AddSystemMessage(subzone .. "={{" .. cords .. ","..n.."},}")
 		n=tonumber(n)	
 		if n and n>=1 and n<=4 then
 			logCords(n,subzone,cords)
@@ -571,4 +573,3 @@ local function OnLoad(eventCode,addonName)
 	
 end
 EVENT_MANAGER:RegisterForEvent(AddonName,EVENT_ADD_ON_LOADED,OnLoad)
-
