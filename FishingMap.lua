@@ -360,7 +360,11 @@ local function SettingsMenu()
         max = 40,
         step = 1
     })	
-
+	local section = {
+        type = LHAS.ST_SECTION,
+        label = "Icon Change",
+    }
+    settings:AddSetting(section)
 	for i = 1, 4 do	
 		settings:AddSetting({
 			type = LHAS.ST_ICONPICKER,
@@ -376,7 +380,10 @@ local function SettingsMenu()
 			default = DefaultVars.fishIconSelected[i],
 		})
 	end
-
+	settings:AddSetting({
+        type = LHAS.ST_SECTION,
+        label = "Force Show Fish",
+    })
 	settings:AddSetting({
         type = LHAS.ST_CHECKBOX,
         label = "Show All Fish", 
@@ -410,7 +417,22 @@ local function SettingsMenu()
 			disable = function() return GetFMSettings().AllFish end,
 		})
 	end
-
+	settings:AddSetting({
+			type = LHAS.ST_CHECKBOX,
+			label = "Show "..LocalizationFishingHole[lang].NewLife, 
+			default = DefaultVars.newlife, 
+			setFunction = function(value)	
+			   GetFMSettings().newlife = value
+			   PinManager:RefreshCustomPins(FishingPinData.id)
+			end,
+			getFunction = function()
+				return GetFMSettings().newlife
+			end,
+	})
+	settings:AddSetting({
+        type = LHAS.ST_SECTION,
+        label = "Logging / Report",
+    })
 	
 	settings:AddSetting({
         type = LHAS.ST_LABEL,
@@ -436,18 +458,7 @@ local function SettingsMenu()
 			RequestOpenUnsafeURL("https://docs.google.com/forms/d/e/1FAIpQLScYWtcIJmjn0ZUrjsvpB5rwA5AlsLvasHUIcKqzIYcogo9vjQ/viewform?usp=pp_url&entry.550722213="..VisualName)
 		end,
 	})
-	settings:AddSetting({
-			type = LHAS.ST_CHECKBOX,
-			label = "Show "..LocalizationFishingHole[lang].NewLife, 
-			default = DefaultVars.newlife, 
-			setFunction = function(value)	
-			   GetFMSettings().newlife = value
-			   PinManager:RefreshCustomPins(FishingPinData.id)
-			end,
-			getFunction = function()
-				return GetFMSettings().newlife
-			end,
-		})
+	
 end
 
 local function SetUpSlashCommands()
