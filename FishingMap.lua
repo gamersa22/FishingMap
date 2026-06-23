@@ -260,15 +260,16 @@ local function MapPinAddCallback()
     for _, name in ipairs(subzonesToProcess) do
         local mapData = FishingMapNodes[name]
         local achStatus = GetFishingAchievement(name)
+		-- confirm theres nodes
         if mapData and achStatus then
-			for i = 1, #mapData do
-				local pinData = mapData[i]
-				if achStatus[pinData[3]] then
-					workQueue[#workQueue+1] = pinData
+			for WaterType, nodeData in pairs(mapData) do
+				if achStatus[WaterType] then
+					workQueue[#workQueue+1] = {data=nodeData, waterType=WaterType}
 				end
 			end
         end
     end
+	local nodeIndex =1
 	local pinIndex = 1
 	local frameBudget = 0.005
 
@@ -276,8 +277,17 @@ local function MapPinAddCallback()
         local startTime = GetGameTimeSeconds()
         while pinIndex <= #workQueue do
 			local pinData = workQueue[pinIndex]
-			FishingPinData.texture = FishIcon[pinData[3]][GetFMSettings().fishIconSelected[pinData[3]]]
-			customCreatePin(FishingPinData.id, {[1]=pinData[3]}, pinData[1], pinData[2])
+			FishingPinData.texture = FishIcon[pinData.waterType][GetFMSettings().fishIconSelected[pinData.waterType]]
+			while nodeIndex <= #pinData.data[1] do
+				customCreatePin(FishingPinData.id, {[1]=pinData.waterType}, pinData.data[1][nodeIndex], pinData.data[2][nodeIndex])
+				nodeIndex = nodeIndex + 1
+				if nodeIndex % 10 == 0 then
+					if (GetGameTimeSeconds() - startTime) > frameBudget then
+						return
+					end
+				end
+			end
+
 			pinIndex = pinIndex + 1
 			if pinIndex % 10 == 0 then
 				if (GetGameTimeSeconds() - startTime) > frameBudget then
