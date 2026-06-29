@@ -574,9 +574,15 @@ end)
 
 local function AddToFilters()	
 	local function AddCheckBox(panel)
-		ZO_PreHook(panel, "PostBuildControls", function(self)
+		-- works with gamepad just not Keyboard
+		--[[ZO_PreHook(panel, "PostBuildControls", function(self)
     		panel:AddPinFilterCheckBox(FishingPinData.mapPinGroup, MapPinAddCallback)
-		end)
+		end)--]]
+		local orgBuild = panel.PostBuildControls
+		function panel.PostBuildControls(panel)
+			panel:AddPinFilterCheckBox(FishingPinData.mapPinGroup, MapPinAddCallback)
+			return orgBuild(panel)
+		end
 	end
 	local function bulkAdd(filterTable)
 		AddCheckBox(filterTable.pvePanel)
@@ -596,21 +602,42 @@ local function SetNameForMapPinGroup(i)
 	ZO_CreateStringId("SI_MAPFILTER" .. mapPinGroup, icon.." "..name)
 	return mapPinGroup
 end
-    local function OnMouseEnter(tag,surface)	
-		surface = FishingPinData.map.surfaces[surface]
-        surface[5], surface[6] = 64, 64
-		if not ZO_WorldMap_IsWorldMapInfoShowing() and not ZO_WorldMap_IsKeepInfoShowing() then
-			local SUPPRESS_CALLBACK = true
-			ZO_WorldMap_ShowGamepadTooltip(resetScroll, SUPPRESS_CALLBACK)
-		end
-		PinTooltipCreator.creator(tag)
-    end
+local function OnMouseEnter(tag,surface)	
 
-    local function OnMouseExit(tag,surface)
-	 surface = FishingPinData.map.surfaces[surface]
-        surface[5], surface[6] = GetFMSettings().pinsize, GetFMSettings().pinsize
-		ZO_WorldMap_HideAllTooltipsLater()
-    end
+	if not ZO_WorldMap_IsWorldMapInfoShowing() and not ZO_WorldMap_IsKeepInfoShowing() then
+		local SUPPRESS_CALLBACK = true
+		ZO_WorldMap_ShowGamepadTooltip(resetScroll, SUPPRESS_CALLBACK)
+	end
+	PinTooltipCreator.creator(tag)
+	FishingPinData.map:AnimateScale(surface,1,1.3,150)
+end
+
+local function OnMouseExit(tag,surface)
+	FishingPinData.map:AnimateScale(surface,1.3,1,150)
+	ZO_WorldMap_HideAllTooltipsLater()
+end
+local function AddToStickyPin()
+    local stickyPin = ZO_WorldMap_GetStickyPin()
+    local cursorPositionX, cursorPositionY = ZO_WorldMapScroll:GetCenter()
+	cursorPositionX, cursorPositionY = NormalizePointToControl(cursorPositionX, cursorPositionY, ZO_WorldMapContainer)
+    for _, pin in ipairs(FishingPinData.map.quadtree:Query(cursorPositionX,cursorPositionY,0.03)) do
+
+        local dx = pin.x - cursorPositionX
+        local dy = pin.y - cursorPositionY
+        local distanceSq = dx * dx + dy * dy
+        if distanceSq < stickyPin.thresholdDistanceSq then
+            if not stickyPin.nearestCandidate or distanceSq < stickyPin.nearestCandidateDistanceSq then
+                function pin:GetNormalizedPosition() return pin.x,pin.y end
+                function pin:NeedsContinuousTooltipUpdates() return false end
+                stickyPin.nearestCandidate = pin
+                stickyPin.nearestCandidateDistanceSq = distanceSq
+            end
+        end
+    end 
+    
+end
+
+ZO_PreHook(ZO_WorldMapStickyPin,"SetStickyPinFromNearestCandidate",AddToStickyPin)
 
 local function OnLoad(eventCode,addonName)
 	if addonName ~= AddonName then return end
@@ -624,7 +651,9 @@ local function OnLoad(eventCode,addonName)
 	
 	FishingPinData.size = FishingPinData.size or GetFMSettings().pinsize*FishingPinData.k
 	FishingPinData.map = LibSurfaceTools.Tools.FlexRect(ZO_WorldMapContainer,nil,OnMouseEnter,OnMouseExit):SetTexture(AddonName.."/fishAtlus.dds", 4, 5)
-	 local control = FishingPinData.map.composite
+	local control = FishingPinData.map.composite
+	control:SetDrawTier(DT_HIGH)
+	control:SetDrawLevel(FishingPinData.level)
 	ZO_PostHook(_G, 'ZO_WorldMap_MouseEnter', function(_, ...) control:GetHandler('OnMouseEnter')(control) end)
 	ZO_PostHook(_G, 'ZO_WorldMap_MouseExit', function(_, ...) control:GetHandler('OnMouseExit')(control) end)
 	--make PinManager know about our Filter
