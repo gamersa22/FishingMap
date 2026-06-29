@@ -1,4 +1,4 @@
-local LMP = LibMapPins
+
 local GPTF = LibGamepadTooltipFilters
 local AddonName="FishingMap"
 local VisualName="Fishing Map"
@@ -35,6 +35,7 @@ local DefaultVars =
 	["AllFish"] = false,
     ["ForceShowFish"]={[1]=0,[2]=0,[3]=0,[4]=0,},
 	["FishingMap_Nodes"]=true,
+	["filterTableState"]={[1]=true,[2]=true,[3]=true,},--pve, pvp, pvpImperial
 	["fishIconSelected"]={[1]=1,[2]=1,[3]=1,[4]=1,[5]=1,},
 	["pinsize"] = 20,
 	["useCharacterSettings"] = false,
@@ -220,21 +221,10 @@ local function AbortPinLoading()
     EVENT_MANAGER:UnregisterForUpdate(AddonName .. "_PinLoader")
     currentLoadingCoroutine = nil
 end
--- Cheap to Run Create Pin that does only what I need
-local function customCreatePin(pinType, pinTag, xLoc, yLoc)
-    local pin, pinKey = PinManager:AcquireObject()
-    pin:SetData(pinType, pinTag)
-    pin:SetOriginalPosition(xLoc, yLoc)
-    pin:SetLocation(xLoc, yLoc)
-        
-    local customPinData = PinManager.customPins[pinType]
-    if customPinData then
-        PinManager:MapPinLookupToPinKey(customPinData.pinTypeString, pinType, pinTag, pinKey)
-    end
-end
 --Callbacks
 local function MapPinAddCallback()
-    if GetMapType() > MAPTYPE_ZONE or not PinManager:IsCustomPinEnabled(FishingPinData.id) then return end
+	FishingPinData.map:Clear()
+    if GetMapType() > MAPTYPE_ZONE or not PinManager:IsCustomPinEnabled(FishingPinData.mapPinGroup) then return end
     local subzone = GetMapTileTexture():match("[^\\/]+$"):lower():gsub("%.dds$", ""):gsub("_[0-9]+$", "")
     -- check if were adding pins, if same map exit, othewise stop loading old pins so we can add new
     if currentLoadingCoroutine ~= nil then
@@ -253,7 +243,6 @@ local function MapPinAddCallback()
     else
         table.insert(subzonesToProcess, subzone)
     end
-
 	-- Process's Subzones
 	-- Get data from FishingMap_Nodes and checks if we need to show the data
 	-- Add data(pins) to workQueue so we have 1 big table to process
@@ -277,9 +266,9 @@ local function MapPinAddCallback()
         local startTime = GetGameTimeSeconds()
         while pinIndex <= #workQueue do
 			local pinData = workQueue[pinIndex]
-			FishingPinData.texture = FishIcon[pinData.waterType][GetFMSettings().fishIconSelected[pinData.waterType]]
+			local imageIndex=((pinData.waterType*4)-4)+GetFMSettings().fishIconSelected[pinData.waterType]
 			while nodeIndex <= #pinData.data[1] do
-				customCreatePin(FishingPinData.id, {[1]=pinData.waterType}, pinData.data[1][nodeIndex], pinData.data[2][nodeIndex])
+				FishingPinData.map:Add(pinData.data[1][nodeIndex], pinData.data[2][nodeIndex], 0, 0, GetFMSettings().pinsize, GetFMSettings().pinsize, imageIndex,{[1]=pinData.data[1][nodeIndex], [2]=pinData.data[2][nodeIndex],[3]=pinData.waterType})
 				nodeIndex = nodeIndex + 1
 				if nodeIndex % 10 == 0 then
 					if (GetGameTimeSeconds() - startTime) > frameBudget then
@@ -287,7 +276,7 @@ local function MapPinAddCallback()
 					end
 				end
 			end
-
+			nodeIndex=1
 			pinIndex = pinIndex + 1
 			if pinIndex % 10 == 0 then
 				if (GetGameTimeSeconds() - startTime) > frameBudget then
@@ -297,7 +286,6 @@ local function MapPinAddCallback()
 		end
         AbortPinLoading()
     end
-
     -- Start Coroutine
     EVENT_MANAGER:RegisterForUpdate(AddonName .. "_PinLoader", 0, function()
         if currentLoadingCoroutine then
@@ -317,17 +305,18 @@ return zo_iconFormat(FishIcon[1][GetFMSettings().fishIconSelected[1]],35,35).." 
 end
 local function updatePinSize(n)
 	GetFMSettings().pinsize=n
-	if ZO_MapPin.PIN_DATA[FishingPinData.id] and FishingPinData.k then ZO_MapPin.PIN_DATA[FishingPinData.id].size=n*FishingPinData.k end
-	PinManager:RefreshCustomPins(FishingPinData.id)
+	if ZO_MapPin.PIN_DATA[FishingPinData.mapPinGroup] and FishingPinData.k then ZO_MapPin.PIN_DATA[FishingPinData.mapPinGroup].size=n*FishingPinData.k end
+	PinManager:RefreshCustomPins(FishingPinData.mapPinGroup)
 end
 
 local PinTooltipCreator={
 	tooltip=1,
 	creator=function(pin)
-		local _, pinTag=pin:GetPinTypeAndTag()
+		--local _, pinTag=pin:GetPinTypeAndTag()
+		local pinTag=pin
 		local name,icon
-		icon=FishIcon[pinTag[1]][GetFMSettings().fishIconSelected[pinTag[1]]]
-		name="X: "..pin.normalizedX.." Y: "..pin.normalizedY.." ID: "..pinTag[1]
+		icon=FishIcon[pinTag[3]][GetFMSettings().fishIconSelected[pinTag[3]]]
+		name="X: "..pinTag[1].." Y: "..pinTag[2].." ID: "..pinTag[3]
 		if IsInGamepadPreferredMode() or IsConsoleUI() then
 			ZO_MapLocationTooltip_Gamepad:LayoutIconStringLine(ZO_MapLocationTooltip_Gamepad.tooltip, icon, zo_strformat("<<1>>", name), ZO_MapLocationTooltip_Gamepad.tooltip:GetStyle("mapLocationTooltipWayshrineHeader"))
 		else
@@ -367,7 +356,7 @@ local function SettingsMenu()
             return GetFMSettings().pinsize
         end,
         min = 16,
-        max = 40,
+        max = 64,
         step = 1
     })	
 	local section = {
@@ -385,7 +374,7 @@ local function SettingsMenu()
 			end,
 			setFunction = function(combobox, index, item)
 				GetFMSettings().fishIconSelected[i]=index
-				PinManager:RefreshCustomPins(FishingPinData.id)
+				PinManager:RefreshCustomPins(FishingPinData.mapPinGroup)
 			end,
 			default = DefaultVars.fishIconSelected[i],
 		})
@@ -401,7 +390,7 @@ local function SettingsMenu()
 		default = DefaultVars.AllFish, 
         setFunction = function(value)
            GetFMSettings().AllFish = value
-		   PinManager:RefreshCustomPins(FishingPinData.id)
+		   PinManager:RefreshCustomPins(FishingPinData.mapPinGroup)
         end,
         getFunction = function()
             return GetFMSettings().AllFish
@@ -419,7 +408,7 @@ local function SettingsMenu()
 			default = false, 
 			setFunction = function(value)	
 			   GetFMSettings().ForceShowFish[i] = boolToNumber(value)
-			   PinManager:RefreshCustomPins(FishingPinData.id)
+			   PinManager:RefreshCustomPins(FishingPinData.mapPinGroup)
 			end,
 			getFunction = function()
 				return GetFMSettings().ForceShowFish[i]==1
@@ -433,7 +422,7 @@ local function SettingsMenu()
 			default = DefaultVars.newlife, 
 			setFunction = function(value)	
 			   GetFMSettings().newlife = value
-			   PinManager:RefreshCustomPins(FishingPinData.id)
+			   PinManager:RefreshCustomPins(FishingPinData.mapPinGroup)
 			end,
 			getFunction = function()
 				return GetFMSettings().newlife
@@ -474,7 +463,7 @@ end
 local function SetUpSlashCommands()
 	SLASH_COMMANDS["/fmpinsize"]=function(n)	
 		n=tonumber(n)		
-		if n and n>=16 and n<=40 then
+		if n and n>=16 and n<=64 then
 			updatePinSize(n)
 		else
 			CHAT_ROUTER:AddSystemMessage("/fmpinsize {Number} \n Number = 16 to 40")
@@ -538,7 +527,7 @@ local function SetUpSlashCommands()
 	end
 	SLASH_COMMANDS["/fmnewlife"]=function(n)
 		GetFMSettings().newlife = not GetFMSettings().newlife
-		 PinManager:RefreshCustomPins(FishingPinData.id)
+		 PinManager:RefreshCustomPins(FishingPinData.mapPinGroup)
 		
 	end
 	SLASH_COMMANDS["/fmsubmit"]=function()
@@ -549,7 +538,7 @@ local function SetUpSlashCommands()
 	end
 	SLASH_COMMANDS["/fmdev"]=function(n)
 		if devMode==false then
-			ZO_MapPin.TOOLTIP_CREATORS[FishingPinData.id]=PinTooltipCreator
+			ZO_MapPin.TOOLTIP_CREATORS[FishingPinData.mapPinGroup]=PinTooltipCreator
 			devMode = true
 		end
 	end
@@ -564,13 +553,64 @@ local function OnAchievementUpdate(achievementId,link)
 		end)
 	end
 	if FishingAchievements[achievementId] and GetFMSettings().FishingMap_Nodes then
-		RefreshPins(FishingPinData.id)
+		RefreshPins(FishingPinData.mapPinGroup)
 	end
 end
 local function RegisterEvents()
 	EVENT_MANAGER:RegisterForEvent(AddonName,EVENT_ACHIEVEMENT_UPDATED,function(_,achievementId,link) OnAchievementUpdate(achievementId)end)
 	EVENT_MANAGER:RegisterForEvent(AddonName,EVENT_ACHIEVEMENT_AWARDED,function(_,_,_,achievementId,link) OnAchievementUpdate(achievementId)end)
 end
+
+ZO_PostHook(ZO_WorldMapFilterPanel_Shared, "SetPinFilter", function(self, mapPinGroup, shown)
+	if FishingPinData.mapPinGroup == mapPinGroup then
+		--GetFMSettings().filterTableState[self.mapFilterType] = shown
+		self.modeVars.filters[1][mapPinGroup] = shown
+		self.modeVars.filters[2][mapPinGroup] = shown
+		self.modeVars.filters[3][mapPinGroup] = shown
+		GetFMSettings().FishingMap_Nodes = shown
+		PinManager:SetCustomPinEnabled(mapPinGroup,shown)
+	end
+end)
+
+local function AddToFilters()	
+	local function AddCheckBox(panel)
+		ZO_PreHook(panel, "PostBuildControls", function(self)
+    		panel:AddPinFilterCheckBox(FishingPinData.mapPinGroup, MapPinAddCallback)
+		end)
+	end
+	local function bulkAdd(filterTable)
+		AddCheckBox(filterTable.pvePanel)
+		AddCheckBox(filterTable.pvpPanel)
+		AddCheckBox(filterTable.imperialPvPPanel)
+	end
+		
+	if WORLD_MAP_FILTERS then bulkAdd(WORLD_MAP_FILTERS) end
+	if GAMEPAD_WORLD_MAP_FILTERS then bulkAdd(GAMEPAD_WORLD_MAP_FILTERS) end
+	
+end
+--Name the filter will use
+local function SetNameForMapPinGroup(i)
+	local mapPinGroup = _G[FishingPinData.name]
+	local icon=zo_iconFormat((FishingPinData.texture),24,24)
+	local name= VisualName
+	ZO_CreateStringId("SI_MAPFILTER" .. mapPinGroup, icon.." "..name)
+	return mapPinGroup
+end
+    local function OnMouseEnter(tag,surface)	
+		surface = FishingPinData.map.surfaces[surface]
+        surface[5], surface[6] = 64, 64
+		if not ZO_WorldMap_IsWorldMapInfoShowing() and not ZO_WorldMap_IsKeepInfoShowing() then
+			local SUPPRESS_CALLBACK = true
+			ZO_WorldMap_ShowGamepadTooltip(resetScroll, SUPPRESS_CALLBACK)
+		end
+		PinTooltipCreator.creator(tag)
+    end
+
+    local function OnMouseExit(tag,surface)
+	 surface = FishingPinData.map.surfaces[surface]
+        surface[5], surface[6] = GetFMSettings().pinsize, GetFMSettings().pinsize
+		ZO_WorldMap_HideAllTooltipsLater()
+    end
 
 local function OnLoad(eventCode,addonName)
 	if addonName ~= AddonName then return end
@@ -583,13 +623,18 @@ local function OnLoad(eventCode,addonName)
 	RegisterEvents()
 	
 	FishingPinData.size = FishingPinData.size or GetFMSettings().pinsize*FishingPinData.k
-	FishingPinData.id = LMP:AddPinType(FishingPinData.name,function() MapPinAddCallback() end,nil,FishingPinData)
-	--pin filter--
-	local icon = zo_iconFormat(FishingPinData.def_texture or FishingPinData.texture or "", 24, 24)
-    local label = icon .. " Fishing Holes"
-	LMP:AddPinFilter(FishingPinData.id, label, false, GetFMSettings())	
+	FishingPinData.map = LibSurfaceTools.Tools.FlexRect(ZO_WorldMapContainer,nil,OnMouseEnter,OnMouseExit):SetTexture(AddonName.."/fishAtlus.dds", 4, 5)
+	 local control = FishingPinData.map.composite
+	ZO_PostHook(_G, 'ZO_WorldMap_MouseEnter', function(_, ...) control:GetHandler('OnMouseEnter')(control) end)
+	ZO_PostHook(_G, 'ZO_WorldMap_MouseExit', function(_, ...) control:GetHandler('OnMouseExit')(control) end)
+	--make PinManager know about our Filter
+	PinManager:AddCustomPin(FishingPinData.name,MapPinAddCallback,nil,FishingPinData)
+	FishingPinData.mapPinGroup = SetNameForMapPinGroup()
+	PinManager:SetCustomPinEnabled(FishingPinData.mapPinGroup,GetFMSettings().FishingMap_Nodes)--GetFMSettings().filterTableState[GetMapFilterType()])
+	--Add to the filter menus
+	AddToFilters()
 	
-	if GPTF then GPTF:AddTooltip(FishingPinData.id,GetToolTipText()) end	
+	if GPTF then GPTF:AddTooltip(FishingPinData.mapPinGroup,GetToolTipText()) end	
 	SetUpSlashCommands()
 	
 end
