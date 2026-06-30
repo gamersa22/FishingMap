@@ -618,14 +618,21 @@ local function OnMouseExit(tag,surface)
 end
 local function AddToStickyPin()
     local stickyPin = ZO_WorldMap_GetStickyPin()
+	local mapSize = ZO_WorldMapContainer:GetWidth()
     local cursorPositionX, cursorPositionY = ZO_WorldMapScroll:GetCenter()
-	cursorPositionX, cursorPositionY = NormalizePointToControl(cursorPositionX, cursorPositionY, ZO_WorldMapContainer)
-    for _, pin in ipairs(FishingPinData.map.quadtree:Query(cursorPositionX,cursorPositionY,0.03)) do
-
-        local dx = pin.x - cursorPositionX
-        local dy = pin.y - cursorPositionY
+	normalizedCursorX, normalizedCursorY = NormalizePointToControl(cursorPositionX, cursorPositionY, ZO_WorldMapContainer)
+    for _, pin in ipairs(FishingPinData.map.quadtree:Query(normalizedCursorX,normalizedCursorY,0.05)) do	
+        local dx = (normalizedCursorX - pin.x)*mapSize
+        local dy = (normalizedCursorY - pin.y)*mapSize	
         local distanceSq = dx * dx + dy * dy
-        if distanceSq < stickyPin.thresholdDistanceSq then
+		--[[
+		d("map: "..mapSize.." x "..pin.x.." y "..pin.y)
+		d("pX "..(mapSize * pin.x).." pY "..(mapSize * pin.y))
+		d("cX "..cursorPositionX.." cY "..cursorPositionY)
+		d("dx: "..dx.." dy: "..dy)
+		d("Ds: "..distanceSq.." SP: ".. stickyPin.thresholdDistanceSq)
+		--]]
+        if distanceSq < stickyPin.thresholdDistanceSq then			
             if not stickyPin.nearestCandidate or distanceSq < stickyPin.nearestCandidateDistanceSq then
                 function pin:GetNormalizedPosition() return pin.x,pin.y end
                 function pin:NeedsContinuousTooltipUpdates() return false end
@@ -634,9 +641,8 @@ local function AddToStickyPin()
             end
         end
     end 
-    
+   
 end
-
 ZO_PreHook(ZO_WorldMapStickyPin,"SetStickyPinFromNearestCandidate",AddToStickyPin)
 
 local function OnLoad(eventCode,addonName)
@@ -654,8 +660,8 @@ local function OnLoad(eventCode,addonName)
 	local control = FishingPinData.map.composite
 	control:SetDrawTier(DT_HIGH)
 	control:SetDrawLevel(FishingPinData.level)
-	ZO_PostHook(_G, 'ZO_WorldMap_MouseEnter', function(_, ...) control:GetHandler('OnMouseEnter')(control) end)
-	ZO_PostHook(_G, 'ZO_WorldMap_MouseExit', function(_, ...) control:GetHandler('OnMouseExit')(control) end)
+	--ZO_PostHook(_G, 'ZO_WorldMap_MouseEnter', function(_, ...) control:GetHandler('OnMouseEnter')(control) end)
+	--ZO_PostHook(_G, 'ZO_WorldMap_MouseExit', function(_, ...) control:GetHandler('OnMouseExit')(control) end)
 	--make PinManager know about our Filter
 	PinManager:AddCustomPin(FishingPinData.name,MapPinAddCallback,nil,FishingPinData)
 	FishingPinData.mapPinGroup = SetNameForMapPinGroup()
