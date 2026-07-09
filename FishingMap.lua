@@ -35,7 +35,6 @@ local DefaultVars =
 	["AllFish"] = false,
     ["ForceShowFish"]={[1]=0,[2]=0,[3]=0,[4]=0,},
 	["FishingMap_Nodes"]=true,
-	["filterTableState"]={[1]=true,[2]=true,[3]=true,},--pve, pvp, pvpImperial
 	["fishIconSelected"]={[1]=1,[2]=1,[3]=1,[4]=1,[5]=1,},
 	["pinsize"] = 32,
 	["useCharacterSettings"] = false,
@@ -366,17 +365,21 @@ local function SettingsMenu()
     settings:AddSetting(section)
 	for i = 1, 4 do	
 		settings:AddSetting({
-			type = LHAS.ST_ICONPICKER,
+			type = LHAS.ST_ATLASICONPICKER,
 			label = Loc(NumToFish[i]),
-			items = FishIcon[i],		
-			getFunction = function()
-				return GetFMSettings().fishIconSelected[i]
-			end,
-			setFunction = function(combobox, index, item)
-				GetFMSettings().fishIconSelected[i]=index
+			tooltip = "Choose an icon",
+			texture = AddonName.."/fishAtlus.dds",
+			atlasSizeX = 4,
+			atlasSizeY = 5,
+			atlasStart = (i*atlasSizeX) - atlasSizeX
+			atlasEnd = atlasStart + atlasSizeX
+			getFunction = function() return GetFMSettings().fishIconSelected[i] end,
+			setFunction = function(control, atlasIndex)
+				GetFMSettings().fishIconSelected[i] = atlasIndex
+				df('Icon changed to %d', atlasIndex)
 				PinManager:RefreshCustomPins(FishingPinData.mapPinGroup)
 			end,
-			default = DefaultVars.fishIconSelected[i],
+			default =  (i*atlasSizeX) - atlasSizeX,
 		})
 	end
 	settings:AddSetting({
@@ -632,6 +635,7 @@ local function AddToStickyPin()
 	
 	--scan for pins in the area on cursor
 	for _, pin in ipairs(FishingPinData.map.quadtree:Query(cursorPositionX,cursorPositionY,0.1)) do	
+	
 		--Base Game ConsiderPin made to work here
         local dx = (cursorPositionX - pin.x) * mapWidth
         local dy = (cursorPositionY - pin.y) * mapWidth	
