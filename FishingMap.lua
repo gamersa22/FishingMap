@@ -3,17 +3,18 @@ local GPTF = LibGamepadTooltipFilters
 local AddonName="FishingMap"
 local VisualName="Fishing Map"
 local Localization={
-	en={Lake="Lake",Foul="Foul",River="River",Salt="Salt",Oily="Oily",Mystic="Mystic",Running="Running",},
-	ru={Lake="озерная вода",Foul="сточная вода",River="речная вода",Salt="морская вода",Oily="маслянистая вода",Mystic="мистическая вода",Running="речная вода",},
-	de={Lake="Seewasser",Foul="Brackwasser",River="Flusswasser",Salt="Salzwasser",Oily="Ölwasser",Mystic="Mythenwasser",Running="Fließgewässer",},
-	fr={Lake="Lac",Foul="Sale",River="Rivière",Salt="Mer",Oily="Huile",Mystic="Mystique",Running="courante",},
-	br={Lake="Lake",Foul="Foul",River="River",Salt="Salt",Oily="Oily",Mystic="Mystic",Running="Running",},
+	en={Lake="Lake",Foul="Foul",River="River",Salt="Salt",Oily="Oily",Mystic="Mystic",Running="Running",NewLife="New Life",},
+	de={Lake="Seewasser",Foul="Brackwasser",River="Flusswasser",Salt="Salzwasser",Oily="Ölwasser",Mystic="Mythenwasser",Running="Fließgewässer",NewLife="Neujahr",},
+	es={Lake = "Lago", Foul = "Sucia", River = "Río", Salt = "Salada", Oily = "Aceitosa", Mystic = "Mística", Running = "Corriente",NewLife="nueva vida",},
+	fr={Lake="Lac",Foul="Sale",River="Rivière",Salt="Mer",Oily="Huile",Mystic="Mystique",Running="courante",NewLife="Nouvelle vie",},
+	jp={Lake="湖",Foul="汚水",River="川",Salt="塩水",Oily="油",Mystic="秘術",Running="Running",NewLife="ニュー・ライフ",},
+	ru={Lake="озерная вода",Foul="сточная вода",River="речная вода",Salt="морская вода",Oily="маслянистая вода",Mystic="мистическая вода",Running="речная вода",NewLife="Новая жизнь",},
+	zh={Lake="湖泊",Foul="脏水",River="河流",Salt="咸水",Oily="油污",Mystic="神秘",Running="Running",NewLife="新生",},
+	br={Lake="Lake",Foul="Foul",River="River",Salt="Salt",Oily="Oily",Mystic="Mystic",Running="Running",NewLife="New Life",},
 	ua={
 		--Lake="озерна вода",Foul="брудна вода",River="річкова вода",Salt="солона вода",Oily="масляниста вода",Mystic="містична вода",Running="проточна вода",
-		Lake="Lake",Foul="Foul",River="River",Salt="Salt",Oily="Oily",Mystic="Mystic",Running="Running",},
-	it={Lake="Lago",Foul="Acqua Sporca",River="Fiume",Salt="Mare",Oily="Oleosa",Mystic="Mistico",Running="Fluente",},
-	es={Lake = "Lago", Foul = "Sucia", River = "Río", Salt = "Salada", Oily = "Aceitosa", Mystic = "Mística", Running = "Corriente",},
-	zh={Lake="湖泊",Foul="脏水",River="河流",Salt="咸水",Oily="油污",Mystic="神秘",Running="Running",},
+		Lake="Lake",Foul="Foul",River="River",Salt="Salt",Oily="Oily",Mystic="Mystic",Running="Running",NewLife="New Life",},
+	it={Lake="Lago",Foul="Acqua Sporca",River="Fiume",Salt="Mare",Oily="Oleosa",Mystic="Mistico",Running="Fluente",NewLife="New Life",},	
 	}
 local LocalizationFishingHole={	
 	en={Salt="Saltwater Fishing Hole",Lake="Lake Fishing Hole",River="River Fishing Hole",Foul="Foul Fishing Hole",NewLife="New Life Fishing Hole",Oily="Oily Fishing Hole",Mystic="Mystic Fishing Hole",AbysFoul="Foul Abyssal Fishing Hole",},
@@ -35,7 +36,7 @@ local DefaultVars =
 	["AllFish"] = false,
     ["ForceShowFish"]={[1]=0,[2]=0,[3]=0,[4]=0,},
 	["FishingMap_Nodes"]=true,
-	["fishIconSelected"]={[1]=1,[2]=1,[3]=1,[4]=1,[5]=1,},
+	["fishIconSelected"]={[1]=1,[2]=5,[3]=9,[4]=13,[5]=17,},
 	["pinsize"] = 32,
 	["useCharacterSettings"] = false,
 	["newlife"] = false,
@@ -58,7 +59,11 @@ local cordsDump = ""
 local UpdatingMapPin=false
 local lastLoc = ""
 local devMode=false
-
+local TextureInfo={
+	texture=AddonName.."/fishAtlus.dds",
+	atlasSizeX=4,
+	atlasSizeY=5,
+}
 local FishIcon={
 	[1]={--Foul
 		"/esoui/art/icons/crafting_slaughterfish.dds",
@@ -97,6 +102,7 @@ local NumToFish={
 	[2]="River",
 	[3]="Lake",
 	[4]="Salt",
+	[5]="NewLife",
 }
 
 local function FishNameToId(name)
@@ -260,14 +266,14 @@ local function MapPinAddCallback()
 	local nodeIndex =1
 	local pinIndex = 1
 	local frameBudget = 0.005
-
+	local l_pinSize = GetFMSettings().pinsize
     currentLoadingCoroutine = function()
         local startTime = GetGameTimeSeconds()
         while pinIndex <= #workQueue do
 			local pinData = workQueue[pinIndex]
-			local imageIndex=((pinData.waterType*4)-4)+GetFMSettings().fishIconSelected[pinData.waterType]
+			local imageIndex = GetFMSettings().fishIconSelected[pinData.waterType]
 			while nodeIndex <= #pinData.data[1] do
-				FishingPinData.map:Add(pinData.data[1][nodeIndex], pinData.data[2][nodeIndex], 0, 0, GetFMSettings().pinsize, GetFMSettings().pinsize, imageIndex,{[1]=pinData.data[1][nodeIndex], [2]=pinData.data[2][nodeIndex],[3]=pinData.waterType})
+				FishingPinData.map:Add(pinData.data[1][nodeIndex], pinData.data[2][nodeIndex], 0, 0, l_pinSize, l_pinSize, imageIndex,{[1]=pinData.data[1][nodeIndex], [2]=pinData.data[2][nodeIndex],[3]=pinData.waterType})
 				nodeIndex = nodeIndex + 1
 				if nodeIndex % 10 == 0 then
 					if (GetGameTimeSeconds() - startTime) > frameBudget then
@@ -363,23 +369,24 @@ local function SettingsMenu()
         label = "Icon Change",
     }
     settings:AddSetting(section)
-	for i = 1, 4 do	
+	for i = 1, 5 do	
+	local fishIndexStart = ((i*TextureInfo.atlasSizeX) - TextureInfo.atlasSizeX)+1
 		settings:AddSetting({
 			type = LHAS.ST_ATLASICONPICKER,
 			label = Loc(NumToFish[i]),
 			tooltip = "Choose an icon",
 			texture = AddonName.."/fishAtlus.dds",
-			atlasSizeX = 4,
-			atlasSizeY = 5,
-			atlasStart = (i*atlasSizeX) - atlasSizeX
-			atlasEnd = atlasStart + atlasSizeX
+			atlasSizeX = TextureInfo.atlasSizeX,
+			atlasSizeY = TextureInfo.atlasSizeY,
+			atlasStart = fishIndexStart,
+			atlasEnd = fishIndexStart + (TextureInfo.atlasSizeX-1),
 			getFunction = function() return GetFMSettings().fishIconSelected[i] end,
 			setFunction = function(control, atlasIndex)
 				GetFMSettings().fishIconSelected[i] = atlasIndex
 				df('Icon changed to %d', atlasIndex)
 				PinManager:RefreshCustomPins(FishingPinData.mapPinGroup)
 			end,
-			default =  (i*atlasSizeX) - atlasSizeX,
+			default = fishIndexStart,
 		})
 	end
 	settings:AddSetting({
@@ -606,6 +613,7 @@ local function SetNameForMapPinGroup(i)
 	return mapPinGroup
 end
 local function OnMouseEnter(tag,surface)
+	if not devMode then return end
 	if IsInGamepadPreferredMode() then
 	if not ZO_WorldMap_IsWorldMapInfoShowing() and not ZO_WorldMap_IsKeepInfoShowing() then
 		local SUPPRESS_CALLBACK = true
@@ -619,11 +627,13 @@ local function OnMouseEnter(tag,surface)
 end
 
 local function OnMouseExit(tag,surface)
+	if not devMode then return end
 	FishingPinData.map:AnimateScale(surface,1.3,1,150)
 	ZO_WorldMap_HideAllTooltipsLater()
 end
 --Magnet pull to pin
 local function AddToStickyPin()
+	if not devMode then return end
 	-- get and chack if its enabled (enables after map is moved)
     local stickyPin = ZO_WorldMap_GetStickyPin()
 	if not stickyPin.enabled then return end
